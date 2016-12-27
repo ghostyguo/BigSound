@@ -1,0 +1,137 @@
+import processing.serial.*; 
+ 
+Serial myPort; 
+int LF = 10;     
+
+// Scope parameter
+int scopeWidth=512, scopeHeight=400;
+float[] scopeData1=new float[scopeWidth];
+float[] scopeData2=new float[scopeWidth];
+boolean showLine1=true, showLine2=true;
+// Internal variable
+int startPosition=0; //try startPosition=scopeWidth-1
+float gainValue=10.0;
+float variance=0.0;
+
+// IO variables
+String inString;
+int soundValue = 0;
+ 
+void setup() 
+{ 
+  size(scopeWidth,scopeHeight); 
+  textSize(20);
+  //frameRate(30); // try maximum frameRate
+
+  myPort = new Serial(this,  "COM7", 57600); 
+  //myPort.bufferUntil(LF); // not used in fast mode
+  
+  for (int i=0; i<scopeWidth; i++)
+  {
+    scopeData1[i] = 0;
+    scopeData2[i] = 0;
+  }  
+}
+
+void draw() 
+{ 
+  background(0); 
+  stroke(128,128,128); //gray
+  line(0, scopeHeight/2, scopeWidth-1, scopeHeight/2);
+  
+ // if (inString==null) return; 
+ 
+  stroke(0,0,255); //blue
+  fill(0,0,255);
+  text("sound: " + soundValue, 10, 30); 
+  text("gain: " + gainValue, scopeWidth/2,30); 
+  text("rate: " + frameRate, 10, 60); // for speed tuniung
+  text("var: " + variance, scopeWidth/2, 60); 
+
+  //noFill();
+  float Amplitude = gainValue;
+  int plotX=0;
+  for (int i=startPosition+1; i<scopeWidth-1; i++)
+  {
+    if (showLine1)
+    {
+      stroke(255,0,0); //red
+      line(plotX, scopeHeight - scopeData1[i]/256.0*scopeHeight, //fast mode scale=256
+           plotX+1, scopeHeight - scopeData1[i+1]/256*scopeHeight);
+    }
+    if (showLine2)
+    {
+      stroke(0,255,0); //green
+      line(plotX, scopeHeight/2 - scopeData2[i]*Amplitude, 
+           plotX+1, scopeHeight/2 - scopeData2[i+1]*Amplitude);
+    }
+    plotX++;
+  }
+  for (int i=0; i<startPosition; i++)
+  {
+    if (showLine1)
+    {
+      stroke(255,0,0); //red
+      line(plotX, scopeHeight - scopeData1[i]/256.0*scopeHeight,
+           plotX+1, scopeHeight - scopeData1[i+1]/256*scopeHeight);
+    }
+    if (showLine2)
+    {
+      stroke(0,255,0); //green
+      line(plotX, scopeHeight/2 - scopeData2[i]*Amplitude,
+           plotX+1, scopeHeight/2 - scopeData2[i+1]*Amplitude);
+    }
+    plotX++;
+  }
+} 
+ 
+void serialEvent(Serial p) 
+{ 
+  // Read data from serial port
+  soundValue = p.readChar(); // 
+
+  // Place the soundValue into data array
+  if (++startPosition>=scopeWidth) // update pointer
+  {
+    startPosition = 0;
+  }
+  scopeData1[startPosition] = soundValue;
+  
+  // Calculate Mean
+  float mean=0.0;
+  for (int i=0; i<scopeWidth-1; i++)
+  {
+    mean += scopeData1[i]/scopeWidth;
+  }    
+  scopeData2[startPosition] = soundValue - mean; // get diff amplitude
+  
+  // Calculate Variance
+  variance=0.0;
+  for (int i=0; i<scopeWidth-1; i++)
+  {
+    variance += (scopeData2[i]*scopeData2[i]);
+  }
+  variance = sqrt(variance)/scopeWidth;
+  
+  // Autogain
+  //gainValue = scopeHeight/variance;
+  //if (gainValue>10) 
+  //  gainValue=10;
+  //gainValue=1;  
+
+}
+
+void keyPressed() {
+  if (key=='1')
+    showLine1 = !showLine1;
+  if (key=='2')
+    showLine2 = !showLine2;
+  if (key=='+')
+    gainValue = gainValue+0.5;
+  if (key=='-')
+    gainValue = gainValue-0.5;
+  if (gainValue<0)
+    gainValue=0; 
+}
+
+

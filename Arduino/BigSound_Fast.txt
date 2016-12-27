@@ -1,0 +1,17 @@
+int soundPinA = 0;    //BigSound analog pin connected to digital pin A0
+int soundPinD = 7;   //BigSound digital pin connected to pin 7
+// IO variables
+float soundValue = 0.0;
+
+void setup() {
+    Serial.begin(57600); //Send To Processing, fast speed
+}
+
+void loop() {
+  //soundValue = analogRead(soundPinA);
+  Serial.write(analogRead(soundPinA)/4);   
+}
+
+
+
+
